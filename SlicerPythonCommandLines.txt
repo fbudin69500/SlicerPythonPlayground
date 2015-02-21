@@ -1,0 +1,4 @@
+#Load a volume directly when opening Slicer
+Slicer --python-code 'slicer.util.loadVolume ("/opt/Francois/tempFiles/DWI_MFcorrected.nrrd" )'
+
+

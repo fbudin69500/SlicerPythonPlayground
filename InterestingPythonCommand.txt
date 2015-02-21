@@ -1,0 +1,78 @@
+
+#change current module in Slicer to 'Data'
+#http://www.slicer.org/slicerWiki/index.php/Documentation/4.1/Developers/Python_scripting
+m = slicer.util.mainWindow()
+m.moduleSelector().selectModule('Data')
+
+#Load a volume in Slicer
+slicer.util.loadVolume ("/opt/Francois/tempFiles/DWI_MFcorrected.nrrd" )
+
+#Load a label map in Slicer
+slicer.util.loadLabelVolume("/Animal/rodent/FAS_sulik/DTI2013/Processing/N50510/3-BrainMaskComputation/N50510_mask_from_seg.nrrd")
+
+#Load a model in Slicer
+slicer.util.loadModel("/opt/Francois/tempFiles/sphere.vtk")
+
+#Load a transform in Slicer
+slicer.util.loadTransform("/Animal/rodent/FAS_sulik/DTI2013/Processing/N50510/2-Registration/N50510_dwi_MFcorrected_shuffled_reg.mat")
+
+#Load a fiber bundle in Slicer
+slicer.util.loadFiberBundle("/opt/Francois/tempFiles/Francois-DTIProfiles/FINALIZED/IFOF_Left_bundle_total_clean_final.vtk")
+
+#Get red slice:
+redSlice=slicer.util.getNode('vtkMRMLSliceNodeRed')
+or slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed')
+#yellow: vtkMRMLSliceNodeYellow
+#green: vtkMRMLSliceNodeGreen
+#Change slice dimension (dimension that image will be drawn on)
+redSlice.SetDimensions(500,500,1)
+
+
+#Get Slice transform to RAS:
+slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed').GetSliceToRAS()
+
+################Qt#####################
+
+#Open qt file dialog to select file:
+No parent: filename = qt.QFileDialog.getOpenFileName(0,caption='Open file')
+In a loadable module:  filename = qt.QFileDialog.getOpenFileName(parent=self,caption='Open file')
+
+#Open qt file dialog to save file:
+filename = qt.QFileDialog.getSaveFileName(parent=self,caption='Save file')
+
+#Create button:
+button=qt.QRadioButton("Negative")
+button.show()
+
+###################################################################################
+Accessing slice vtkRenderWindows from slice views
+
+The example below shows how to get the rendered slice window.
+
+lm = slicer.app.layoutManager()
+redWidget = lm.sliceWidget('Red')
+redView = redWidget.sliceView()
+wti = vtk.vtkWindowToImageFilter()
+wti.SetInput(redView.renderWindow())
+wti.Update()
+v = vtk.vtkImageViewer()
+v.SetColorWindow(255)
+v.SetColorLevel(128)
+v.SetInputConnection(wti.GetOutputPort())
+v.Render()
+
+###################################################################################
+ Running a CLI from Python
+
+Here's an example to create a model from a volume using the Grayscale Model Maker
+
+def grayModel(volumeNode):
+  parameters = {}
+  parameters["InputVolume"] = volumeNode.GetID()
+  outModel = slicer.vtkMRMLModelNode()
+  slicer.mrmlScene.AddNode( outModel )
+  parameters["OutputGeometry"] = outModel.GetID()
+  grayMaker = slicer.modules.grayscalemodelmaker
+  return (slicer.cli.run(grayMaker, None, parameters))
+
+
