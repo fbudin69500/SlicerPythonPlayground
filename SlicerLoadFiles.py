@@ -35,29 +35,46 @@ if __name__ == '__main__':
                 usage=sys.argv[0]+''' [<args>]
       
       To specify the Slicer executable path you can either:
-      1) Add SLICERPATH to your environment
-      2) Add the directory that contains Slicer executable to PATH
+      1) Specify Slicer executable path in the command line
+      2) Add SLICERPATH to your environment
+      3) Add the directory that contains Slicer executable to PATH
 ''')
   parser.add_argument("-v","--volume", help="Volume file name",action='append',dest="Volume")
   parser.add_argument("-m","--model", help="Model file name",action='append',dest="Model")
   parser.add_argument("-l","--Label", help="Label volume file name",action='append',dest="LabelVolume")
   parser.add_argument("-t","--Transform", help="transform file name",action='append',dest="Transform")
   parser.add_argument("-f","--fiber", help="Fiber bundle file name",action='append',dest="FiberBundle")
+  parser.add_argument("-s","--slicer", help="Slicer executable",action='append')
+  parser.add_argument("--version",help="Script version",action='store_true')
   args = parser.parse_args()
+  if args.version:
+    print os.path.basename(sys.argv[0])+" version 1.0"
+    exit(0)
   #Searches for Slicer on the system
-  SlicerExecPath=""
-  pathList=os.environ["PATH"].split(os.pathsep)
-  pathList.insert(0,os.getenv('SLICERPATH',''))
-  for path in pathList:
-    path = path.strip('"')
-    exe_file = os.path.join(path, "Slicer")
-    if CheckExecCaseSensitive(exe_file):
-      SlicerExecPath=exe_file
-      break
-  if SlicerExecPath == '' :
-    print( "Error: Slicer executable not found on the system")
-    exit(1)
-  #change current module in Slicer to 'Data'
+  try:
+    if len(args.slicer) > 1:
+      print( "Error: Slicer path can be specified only once" )
+      exit(1)
+    SlicerExecPath=args.slicer[0]
+    if not CheckExecCaseSensitive(SlicerExecPath):
+      print("Given executable for Slicer does not exist or is not an executable file")
+      exit(1)
+  except SystemExit:
+    sys.exit(1)
+  except:
+    SlicerExecPath=""
+    pathList=os.environ["PATH"].split(os.pathsep)
+    pathList.insert(0,os.getenv('SLICERPATH',''))
+    for path in pathList:
+      path = path.strip('"')
+      exe_file = os.path.join(path, "Slicer")
+      if CheckExecCaseSensitive(exe_file):
+        SlicerExecPath=exe_file
+        break
+    if SlicerExecPath == '' :
+      print( "Error: Slicer executable not found on the system")
+      exit(1)
+    #change current module in Slicer to 'Data'
   CLArgs=" --python-code 'button=qt.QRadioButton(\"Loading\");button.show();slicer.util.mainWindow().moduleSelector().selectModule(\"Data\");"
   #Write python code to load the data
   for dataType in ["Volume","Model","LabelVolume","Transform","FiberBundle"]:
