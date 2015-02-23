@@ -49,16 +49,16 @@ if __name__ == '__main__':
   args = parser.parse_args()
   if args.version:
     print os.path.basename(sys.argv[0])+" version 1.0"
-    exit(0)
+    sys.exit(0)
   #Searches for Slicer on the system
   try:
     if len(args.slicer) > 1:
       print( "Error: Slicer path can be specified only once" )
-      exit(1)
+      sys.exit(1)
     SlicerExecPath=args.slicer[0]
     if not CheckExecCaseSensitive(SlicerExecPath):
       print("Given executable for Slicer does not exist or is not an executable file")
-      exit(1)
+      sys.exit(1)
   except SystemExit:
     sys.exit(1)
   except:
@@ -73,7 +73,7 @@ if __name__ == '__main__':
         break
     if SlicerExecPath == '' :
       print( "Error: Slicer executable not found on the system")
-      exit(1)
+      sys.exit(1)
     #change current module in Slicer to 'Data'
   CLArgs=" --python-code 'button=qt.QRadioButton(\"Loading\");button.show();slicer.util.mainWindow().moduleSelector().selectModule(\"Data\");"
   #Write python code to load the data
