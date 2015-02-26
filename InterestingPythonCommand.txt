@@ -76,3 +76,62 @@ def grayModel(volumeNode):
   return (slicer.cli.run(grayMaker, None, parameters))
 
 
+
+
+
+        #if self.logic.run(fileName):
+
+        #self.dialogBox=qt.QDialog()
+        #self.formLayout = qt.QFormLayout()
+        #self.dialogBox.setLayout(self.formLayout)
+        #self.myMessage = qt.QLineEdit()
+        #self.myMessage.setText("Restart Slicer?")
+        #self.myMessage.readOnly = True
+        #self.myMessage = False
+        #self.formLayout.addRow(self.myMessage)
+
+        #self.buttonBox = qt.QDialogButtonBox()
+        #self.buttonBox.setStandardButtons(qt.QDialogButtonBox.Ok |
+        #                              qt.QDialogButtonBox.Cancel)
+        #self.formLayout.addRow(self.buttonBox)
+        #self.buttonBox.setWindowTitle("Restart")
+        #self.dialogBox.show()
+
+
+
+        icon = self.parent.style().standardIcon(qt.QStyle.SP_ArrowForward)
+        iconSize = qt.QSize(22, 22)
+        def createToolButton(text):
+            tb = qt.QToolButton()
+
+            tb.text = text
+            tb.icon = icon
+
+            font = tb.font
+            font.setBold(True)
+            font.setPixelSize(14)
+            tb.font = font
+
+            tb.iconSize = iconSize
+            tb.toolButtonStyle = qt.Qt.ToolButtonTextBesideIcon
+            tb.autoRaise = True
+
+            return tb
+
+
+    def createReadOnlyLineEdit():
+      le = qt.QLineEdit()
+      le.readOnly = True
+      le.frame = False
+      le.styleSheet = "QLineEdit { background:transparent; }"
+      le.cursor = qt.QCursor(qt.Qt.IBeamCursor)
+      return le
+
+
+
+        value=qt.QMessageBox.question(slicer.util.mainWindow(),"","Are you sure you want to restart?",0x14000)
+        #0x4000 :OK
+        #0x10000:NO
+        #http://qt-project.org/doc/qt-4.8/qmessagebox.html#StandardButton-enum
+        if value == 0x4000:
+            slicer.util.restart()
