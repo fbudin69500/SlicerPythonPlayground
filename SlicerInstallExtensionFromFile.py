@@ -19,7 +19,8 @@ def GetCurrentPlatform(SlicerExecPath):
   currentPlatform=RunScript(SlicerExecPath ,
                        '''print slicer.app.repositoryRevision+","+slicer.app.os+","+slicer.app.arch'''
   )
-  currentRev,currentOS,currentArch=currentPlatform.split(',')[:3]
+  currentPlatformLines=currentPlatform.split('\n')
+  currentRev,currentOS,currentArch=currentPlatformLines[len(currentPlatformLines)-1].split(',')[:3]
   return {'Rev':currentRev,'OS':currentOS,'Arch':currentArch}
 
 def RunScript(SlicerExecPath , script ):
@@ -50,6 +51,8 @@ def FindSlicerExecutable(manualSlicerPath):
     SlicerExecPath=manualSlicerPath[0]
     if not CheckExecCaseSensitive(SlicerExecPath):
       raise Exception("Given executable for Slicer does not exist or is not an executable file")
+    else:
+      return SlicerExecPath
   #In case no slicer path was given as an argument in the command line,
   #len(manualSlicerPath) raises an error that we catch here and continue as nothing bad has happened
   except TypeError:
@@ -115,7 +118,7 @@ if __name__ == '__main__':
   #Install extensions
   try:
     for name in args.extension:
-      RunScript(SlicerExecPath , '''slicer.app.extensionsManagerModel().installExtension("'''+name+'''")''' )
+      RunScript(SlicerExecPath , '''slicer.app.extensionsManagerModel().installExtension("'''+os.path.abspath(name)+'''")''' )
   except Exception as e:
     print e
     sys.exit(1)
