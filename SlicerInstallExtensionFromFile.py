@@ -24,7 +24,7 @@ def GetCurrentPlatform(SlicerExecPath):
   return {'Rev':currentRev,'OS':currentOS,'Arch':currentArch}
 
 def RunScript(SlicerExecPath , script ):
-  process=subprocess.Popen([SlicerExecPath,"-c",script],stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+  process=subprocess.Popen([SlicerExecPath,"-c","--launcher-no-splash",script],stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
   process.wait()
   output,error=process.communicate()
   if process.returncode != 0 or output.find("Failed") != -1:
