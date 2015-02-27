@@ -2,6 +2,7 @@
 import sys
 import argparse
 import os
+import glob
 
 #http://stackoverflow.com/questions/17277566/check-os-path-isfilefilename-with-case-sensitive-in-python
 def CheckExecCaseSensitive(filename):
@@ -16,11 +17,13 @@ def LoadDataPythonCodeCreator( dataType , args ):
   try:
     listFileNames=getattr(args,dataType,list())
     for filename in listFileNames:
-      if not os.path.isfile(filename):
-        print "Error: "+filename+" does not exist"
-        sys.exit(1)
-      print( "Loading: "+filename )
-      CLArgs+="slicer.util.load"+dataType+"(\""+filename+"\");"
+      globfiles=glob.glob(filename.replace("\*","*"))
+      for globfilename in globfiles:
+        if not os.path.isfile(globfilename):
+          print "Error: "+globfilename+" does not exist"
+          sys.exit(1)
+        print( "Loading: "+globfilename )
+        CLArgs+="slicer.util.load"+dataType+"(\""+globfilename+"\");"
   except SystemExit:
     sys.exit(1)
   except:
@@ -38,7 +41,11 @@ if __name__ == '__main__':
       1) Specify Slicer executable path in the command line
       2) Add SLICERPATH to your environment
       3) Add the directory that contains Slicer executable to PATH
-''')
+
+      To specify multiple files at once with the wildcard, write the file path
+      in between single (') or double (") quotation marks and escape the wildcard with a backslash (\*):
+      e.g.:'''+sys.argv[0]+''' -v my/file/path/my_prefix\*_my_suffix.my_extension'''
+)
   parser.add_argument("-v","--volume", help="Volume file name",action='append',dest="Volume")
   parser.add_argument("-m","--model", help="Model file name",action='append',dest="Model")
   parser.add_argument("-l","--Label", help="Label volume file name",action='append',dest="LabelVolume")
