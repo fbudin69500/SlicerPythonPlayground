@@ -1,0 +1,8 @@
+https://subversion.assembla.com/svn/slicerrt/trunk/SlicerRt/src/
+https://subversion.assembla.com/svn/slicerrt/trunk/VolumeClip/src/
+https://github.com/gpernelle/iGyne/tree/master/iGyne
+https://github.com/gohn03/ThingiverseBrowser
+https://github.com/vmtk/SlicerExtension-VMTK/tree/master/PythonModules
+https://github.com/Tomnl/Slicer-Wasp/blob/master/Wasp/Wasp.py
+https://subversion.assembla.com/svn/Scoliosis/trunk/Scoliosis/src/SpinalCurvatureMeasurement/
+https://github.com/SlicerIGT/ResectionPlanner
