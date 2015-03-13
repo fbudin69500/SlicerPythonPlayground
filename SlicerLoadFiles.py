@@ -52,10 +52,13 @@ if __name__ == '__main__':
   parser.add_argument("-t","--Transform", help="transform file name",action='append',dest="Transform")
   parser.add_argument("-f","--fiber", help="Fiber bundle file name",action='append',dest="FiberBundle")
   parser.add_argument("-s","--slicer", help="Slicer executable",action='append')
+  parser.add_argument("-c","--create_MRML_scene", help="Create a MRML scene and exits Slicer",action='append')
+  parser.add_argument("--fast",help="Only loads a few modules for Slicer",action='store_true')
+  parser.add_argument("--show_errors",help="Print error messages in the terminal",action='store_true')
   parser.add_argument("--version",help="Script version",action='store_true')
   args = parser.parse_args()
   if args.version:
-    print os.path.basename(sys.argv[0])+" version 1.0"
+    print os.path.basename(sys.argv[0])+" version 1.1"
     sys.exit(0)
   #Searches for Slicer on the system
   try:
@@ -81,10 +84,33 @@ if __name__ == '__main__':
     if SlicerExecPath == '' :
       print( "Error: Slicer executable not found on the system")
       sys.exit(1)
+  CLArgs=" --python-code '"
+  create_MRML = True
+  try:
+    if len(args.create_MRML_scene) > 1:
+      print( "Error: Only one output MRML scene file can be specified" )
+      sys.exit(1)
+  except:
+    create_MRML = False
+  if create_MRML == True:
+    #Save loaded data into a MRML scene
+    args.fast=True
+    CLArgs+="slicer.util.mainWindow().hide();"
+  else:
     #change current module in Slicer to 'Data'
-  CLArgs=" --python-code 'button=qt.QRadioButton(\"Loading\");button.show();slicer.util.mainWindow().moduleSelector().selectModule(\"Data\");"
+    CLArgs+="button=qt.QRadioButton(\"Loading\");button.show();slicer.util.mainWindow().moduleSelector().selectModule(\"Data\");"
   #Write python code to load the data
   for dataType in ["Volume","Model","LabelVolume","Transform","FiberBundle"]:
     CLArgs+=LoadDataPythonCodeCreator(dataType,args)
-  CLArgs+="button.hide()'"
-  os.system(SlicerExecPath+CLArgs)
+  if create_MRML == True:
+    CLArgs+="slicer.util.saveScene(\""+args.create_MRML_scene[0]+"\");slicer.util.quit()'"
+  else:
+    CLArgs+="button.hide();'"
+  ##Command line
+  additionalCLArgs=""
+  if not args.show_errors:
+    additionalCLArgs=" --disable-terminal-outputs "
+  fastCLArgs = ""
+  if args.fast:
+    fastCLArgs = " --disable-scripted-loadable-modules --disable-cli-modules --no-splash"
+  os.system(SlicerExecPath+additionalCLArgs+fastCLArgs+CLArgs)
