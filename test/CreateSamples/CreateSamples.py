@@ -42,16 +42,27 @@ class CreateSamplesWidget(ScriptedLoadableModuleWidget):
 
     # Instantiate and connect widgets ...
 
+    generalParametersCollapsibleButton = ctk.ctkCollapsibleButton()
+    generalParametersCollapsibleButton.text = "General parameters"
+    self.layout.addWidget(generalParametersCollapsibleButton)
+
+    # Layout within the dummy collapsible button
+    hlayout = qt.QHBoxLayout(generalParametersCollapsibleButton)
+    self.label=qt.QLabel("Volume Name:")
+    hlayout.addWidget(self.label)
+    self.volumeNameLine=qt.QLineEdit()
+    hlayout.addWidget(self.volumeNameLine)
+    self.volumeNameLine.connect('textChanged(QString)', self.onLabelChanged)
+
     #
     # Parameters Area
     #
     parametersCollapsibleButton = ctk.ctkCollapsibleButton()
-    parametersCollapsibleButton.text = "Parameters"
+    parametersCollapsibleButton.text = "Sample From Nothing"
     self.layout.addWidget(parametersCollapsibleButton)
 
     # Layout within the dummy collapsible button
     parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
-
 
     #
     # Sample Label map Button
@@ -83,24 +94,78 @@ class CreateSamplesWidget(ScriptedLoadableModuleWidget):
     self.volumeButton.connect('clicked(bool)', self.onVolumeButton)
     self.modelButton.connect('clicked(bool)', self.onModelButton)
 
+    parametersCollapsibleButton2 = ctk.ctkCollapsibleButton()
+    parametersCollapsibleButton2.text = "Sample From example"
+    self.layout.addWidget(parametersCollapsibleButton2)
+
+    # Layout within the dummy collapsible button
+    parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton2)
+    #
+    # input volume selector
+    #
+    self.inputSelector = slicer.qMRMLNodeComboBox()
+    self.inputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
+    # Keep the following line as an example
+    #self.inputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
+    self.inputSelector.selectNodeUponCreation = True
+    self.inputSelector.addEnabled = False
+    self.inputSelector.removeEnabled = False
+    self.inputSelector.noneEnabled = True
+    self.inputSelector.showHidden = False
+    self.inputSelector.showChildNodeTypes = False
+    self.inputSelector.setMRMLScene( slicer.mrmlScene )
+    self.inputSelector.setToolTip( "reference image." )
+    parametersFormLayout.addRow("Reference Volume: ", self.inputSelector)
+    self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSampleFromReferenceSelect)
+
+    #
+    # Sample From reference Button
+    #
+    self.referenceButton = qt.QPushButton("Create Sample Model from a reference")
+    self.referenceButton.toolTip = "Create sample Model from a reference."
+    parametersFormLayout.addRow(self.referenceButton)
+    self.referenceButton.connect('clicked(bool)', self.onReferenceButton)
+
+
     # Add vertical spacer
     self.layout.addStretch(1)
 
+    # Refresh Apply button state
+    self.onLabelChanged(self.volumeNameLine.text)
+
+  def ButtonsClickable(self, value):
+    self.labelButton.setEnabled(value)
+    self.volumeButton.setEnabled(value)
+    self.modelButton.setEnabled(value)
+    self.onSampleFromReferenceSelect()
 
   def cleanup(self):
     pass
 
+  def onLabelChanged(self,myString):
+      if not myString=='':
+          self.ButtonsClickable(True)
+      else:
+          self.ButtonsClickable(False)
+
+  def onSampleFromReferenceSelect(self):
+    self.referenceButton.enabled = self.inputSelector.currentNode() and self.volumeNameLine.text != ''
+
   def onLabelButton(self):
     logic = CreateSamplesLogic()
-    logic.createLabelMap()
+    logic.createVolume(self.volumeNameLine.text, labelmap=True)
 
   def onVolumeButton(self):
     logic = CreateSamplesLogic()
-    logic.createVolumeMap()
+    logic.createVolume(self.volumeNameLine.text)
 
   def onModelButton(self):
     logic = CreateSamplesLogic()
-    logic.createModelMap()
+    logic.createModel()
+
+  def onReferenceButton(self):
+      logic = CreateSamplesLogic()
+      logic.createVolume(self.volumeNameLine.text, labelmap=True, reference=self.inputSelector.currentNode())
 #
 # CreateSamplesLogic
 #
@@ -114,48 +179,64 @@ class CreateSamplesLogic(ScriptedLoadableModuleLogic):
   Uses ScriptedLoadableModuleLogic base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
+  def setVolumeAsBackgroundImage(self, node):
+    count = slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLSliceCompositeNode')
+    for n in xrange(count):
+      compNode = slicer.mrmlScene.GetNthNodeByClass(n, 'vtkMRMLSliceCompositeNode')
+      compNode.SetBackgroundVolumeID(node.GetID())
+    return True
 
   # Create sample labelmap with same geometry as input volume
-  def createLabelMap(self ):
-    outputImageData = vtk.vtkImageData()
-    outputImageData.SetOrigin(50,50,50)
-    outputImageData.SetSpacing(.5,.5,.5)
-    outputImageData.SetDimensions(10,5,15)
-    outputImageData.SetOrigin(1,3,8)
-    outputImageData.AllocateScalars(vtk.VTK_DOUBLE, 1);
-    volumeNode = slicer.vtkMRMLScalarVolumeNode()
-    volumeNode.SetAndObserveImageData(outputImageData)
-    label = 1
-    sampleLabelmapNode = slicer.vtkMRMLScalarVolumeNode()
-    sampleLabelmapNode.SetName("SampleLabelMap")
-    sampleLabelmapNode.SetLabelMap(1)
-    sampleLabelmapNode = slicer.mrmlScene.AddNode(sampleLabelmapNode)
-    sampleLabelmapNode.Copy(volumeNode)
+  def createVolume(self , volumeName, labelmap=False, reference=None):
+    if volumeName == '':
+        raise Exception('The name of the output volume cannot be empty')
+    value = 1
+    sampleVolumeNode = slicer.vtkMRMLScalarVolumeNode()
+    sampleVolumeNode = slicer.mrmlScene.AddNode(sampleVolumeNode)
     imageData = vtk.vtkImageData()
-    imageData.DeepCopy(volumeNode.GetImageData())
-    sampleLabelmapNode.SetAndObserveImageData(imageData)
+    if reference == None:
+        mySpacing = (0.5,0.6,0.5)
+        myOrigin = (20,50,50)
+        # Do NOT set the spacing and the origin of imageData (vtkImageData)
+        # The spacing and the origin should only be set in the vtkMRMLScalarVolumeNode!!!!!!
+        imageData.SetDimensions(30,5,15)
+        imageData.AllocateScalars(vtk.VTK_DOUBLE, 1)
+        sampleVolumeNode.SetSpacing(mySpacing[0],mySpacing[1],mySpacing[2])
+        sampleVolumeNode.SetOrigin(myOrigin[0],myOrigin[1],myOrigin[2])
+    else:
+        sampleVolumeNode.Copy(reference)
+        imageData.DeepCopy(reference.GetImageData())
+    sampleVolumeNode.SetName(volumeName)
+    sampleVolumeNode.SetAndObserveImageData(imageData)
     extent = imageData.GetExtent()
     for x in xrange(extent[0], extent[1]+1):
         for y in xrange(extent[2], extent[3]+1):
             for z in xrange(extent[4], extent[5]+1):
                 if (x >= (extent[1]/4) and x <= (extent[1]/4) * 3) and (y >= (extent[3]/4) and y <= (extent[3]/4) * 3) and (z >= (extent[5]/4) and z <= (extent[5]/4) * 3):
-                    imageData.SetScalarComponentFromDouble(x,y,z,0,label)
+                    imageData.SetScalarComponentFromDouble(x,y,z,0,value)
                 else:
                     imageData.SetScalarComponentFromDouble(x,y,z,0,0)
     # Display labelmap
-    labelmapVolumeDisplayNode = slicer.vtkMRMLLabelMapVolumeDisplayNode()
-    slicer.mrmlScene.AddNode(labelmapVolumeDisplayNode)
-    colorNode = slicer.util.getNode('GenericAnatomyColors')
-    #self.assertTrue( colorNode != None )
-    labelmapVolumeDisplayNode.SetAndObserveColorNodeID(colorNode.GetID())
-    labelmapVolumeDisplayNode.VisibilityOn()
-    sampleLabelmapNode.SetAndObserveDisplayNodeID(labelmapVolumeDisplayNode.GetID())
+    if labelmap:
+        sampleVolumeNode.SetLabelMap(1)
+        labelmapVolumeDisplayNode = slicer.vtkMRMLLabelMapVolumeDisplayNode()
+        slicer.mrmlScene.AddNode(labelmapVolumeDisplayNode)
+        colorNode = slicer.util.getNode('GenericAnatomyColors')
+        labelmapVolumeDisplayNode.SetAndObserveColorNodeID(colorNode.GetID())
+        labelmapVolumeDisplayNode.VisibilityOn()
+        sampleVolumeNode.SetAndObserveDisplayNodeID(labelmapVolumeDisplayNode.GetID())
+    else:
+        volumeDisplayNode = slicer.vtkMRMLScalarVolumeDisplayNode()
+        slicer.mrmlScene.AddNode(volumeDisplayNode)
+        colorNode = slicer.util.getNode('Grey')
+        volumeDisplayNode.SetAndObserveColorNodeID(colorNode.GetID())
+        volumeDisplayNode.VisibilityOn()
+        sampleVolumeNode.SetAndObserveDisplayNodeID(volumeDisplayNode.GetID())
+    self.setVolumeAsBackgroundImage(sampleVolumeNode)
     return True
 
-  def createVolumeMap(self):
-      print "plop"
 
-  def createModelMap(self):
+  def createModel(self):
       print "model"
 
 class CreateSamplesTest(ScriptedLoadableModuleTest):
