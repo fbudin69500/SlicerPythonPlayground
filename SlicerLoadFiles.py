@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
       To specify multiple files at once with the wildcard, write the file path
       in between single (') or double (") quotation marks and escape the wildcard with a backslash (\*):
-      e.g.:'''+sys.argv[0]+''' -v my/file/path/my_prefix\*_my_suffix.my_extension'''
+      e.g.:'''+sys.argv[0]+''' -v "my/file/path/my_prefix\*_my_suffix.my_extension"'''
 )
   parser.add_argument("-v","--volume", help="Volume file name",action='append',dest="Volume")
   parser.add_argument("-m","--model", help="Model file name",action='append',dest="Model")
